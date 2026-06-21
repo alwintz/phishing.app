@@ -1,0 +1,4 @@
+ml/phishing_model.pkl
+database/phishing.db
+__pycache__/
+*.pyc
