@@ -2,53 +2,55 @@ import pandas as pd
 import joblib
 
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 
-CSV_PATH = "data/email_phishing_data.csv"
+CSV_PATH = "data/email_phishing_text.csv"
 MODEL_PATH = "ml/phishing_model.pkl"
+VECTORIZER_PATH = "ml/vectorizer.pkl"
 
 
 def train_model():
 
     print("Loading dataset...")
 
-    # Load historical phishing and legitimate email data
+    # Load raw email text and known labels
     df = pd.read_csv(CSV_PATH)
 
     print(df.head())
 
-    # Select only the columns that will be used as inputs to the model
-    X = df[
-        [
-            "num_words",
-            "num_unique_words",
-            "num_stopwords",
-            "num_links",
-            "num_unique_domains",
-            "num_email_addresses",
-            "num_spelling_errors",
-            "num_urgent_keywords"
-        ]
-    ]
+    # Raw email text
+    X = df["email_text"]
 
-    # Target value:
-    # 0 = legitimate email
-    # 1 = phishing email
+    # 0 = legitimate
+    # 1 = phishing
     y = df["label"]
 
-    # Keep 20% of records separate so the model can be tested
-    # on data it has never seen before
+    # Split data into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
-        test_size=0.2,
-        random_state=42
+        test_size=0.5,
+        random_state=42,
+        stratify=y
     )
 
-    # Random Forest combines multiple decision trees
-    # to improve prediction accuracy and reduce overfitting
+    # Convert email text into numerical TF-IDF features
+    vectorizer = TfidfVectorizer(
+        lowercase=True,
+        stop_words="english"
+    )
+
+    X_train_tfidf = vectorizer.fit_transform(X_train)
+
+    # Important:
+    # transform() is used on test data.
+    # We do NOT fit the vectorizer again.
+    X_test_tfidf = vectorizer.transform(X_test)
+
+    # Create Random Forest classifier
     model = RandomForestClassifier(
         n_estimators=100,
         random_state=42
@@ -56,24 +58,24 @@ def train_model():
 
     print("Training model...")
 
-    # Learn phishing patterns from the training dataset
-    model.fit(X_train, y_train)
+    # Train Random Forest on TF-IDF numerical features
+    model.fit(X_train_tfidf, y_train)
 
-    # Predict classifications for unseen test records
-    y_pred = model.predict(X_test)
+    # Predict unseen test data
+    y_pred = model.predict(X_test_tfidf)
 
-    # Measure how many emails were classified correctly
+    # Basic model evaluation
     accuracy = accuracy_score(y_test, y_pred)
 
     print(f"Model Accuracy: {accuracy:.2%}")
 
-    # Save trained model so the API can use it later
-    # without retraining every time the application starts
+    # Save model and fitted TF-IDF vectorizer
     joblib.dump(model, MODEL_PATH)
+    joblib.dump(vectorizer, VECTORIZER_PATH)
 
     print("Model saved successfully")
+    print("TF-IDF vectorizer saved successfully")
 
 
-# Start training when this file is executed directly
 if __name__ == "__main__":
     train_model()

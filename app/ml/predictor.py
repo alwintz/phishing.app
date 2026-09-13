@@ -3,38 +3,54 @@ import joblib
 from ml.feature_extractor import extract_features
 
 
-# Load the trained model saved by train_model.py
 MODEL_PATH = "ml/phishing_model.pkl"
+VECTORIZER_PATH = "ml/vectorizer.pkl"
+
+# Load trained model and fitted TF-IDF vectorizer
 model = joblib.load(MODEL_PATH)
+vectorizer = joblib.load(VECTORIZER_PATH)
 
 
 def predict_email(email_text: str):
     """
-    Receives raw email text, converts it into numeric features,
-    then uses the trained ML model to predict phishing or legitimate.
+    Analyses a new email using the saved TF-IDF vectorizer
+    and trained Random Forest model.
     """
 
-    # Convert email text into the same 8 features used during training
+    # Convert the new email into the same TF-IDF format
+    # that was used during model training
+    email_tfidf = vectorizer.transform([email_text])
+
+    # Calculate class probabilities
+    probabilities = model.predict_proba(email_tfidf)[0]
+
+    phishing_probability = float(probabilities[1])
+
+    # Extract additional security indicators
+    # These are used for display and database storage
     features = extract_features(email_text)
 
-    # Predict class: 0 = legitimate, 1 = phishing
-    prediction = model.predict([features])[0]
+    # Convert phishing probability into risk level
+    if phishing_probability >= 0.70:
+        prediction = "phishing"
+        label = 1
+        risk_level = "high"
 
-    # Get confidence score from model probabilities
-    probabilities = model.predict_proba([features])[0]
-    confidence = max(probabilities)
+    elif phishing_probability >= 0.40:
+        prediction = "suspicious"
+        label = 0
+        risk_level = "medium"
 
-    # Business rule:
-    # If the email contains at least one link and many urgent words,
-    # classify it as phishing even if the ML model says legitimate.
-    if prediction == 0 and features[3] >= 1 and features[7] >= 2:
-        prediction = 1
-        confidence = max(confidence, 0.75)
+    else:
+        prediction = "legitimate"
+        label = 0
+        risk_level = "low"
 
     return {
-        "prediction": "phishing" if prediction == 1 else "legitimate",
-        "label": int(prediction),
-        "confidence": round(float(confidence), 2),
+        "prediction": prediction,
+        "label": label,
+        "confidence": round(phishing_probability, 2),
+        "risk_level": risk_level,
         "features": {
             "num_words": features[0],
             "num_unique_words": features[1],
@@ -42,7 +58,6 @@ def predict_email(email_text: str):
             "num_links": features[3],
             "num_unique_domains": features[4],
             "num_email_addresses": features[5],
-            "num_spelling_errors": features[6],
-            "num_urgent_keywords": features[7],
+            "num_urgent_keywords": features[6],
         }
     }

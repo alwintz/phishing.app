@@ -22,7 +22,7 @@ for row in rows:
     print(f"Links: {row[8]}")
     print(f"Unique Domains: {row[9]}")
     print(f"Email Addresses: {row[10]}")
-    print(f"Spelling Errors: {row[11]}")
+    
     print(f"Urgent Keywords: {row[12]}")
 
     print("Prediction value =", row[2])

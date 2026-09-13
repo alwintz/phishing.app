@@ -23,7 +23,6 @@ def create_table():
             num_links INTEGER,
             num_unique_domains INTEGER,
             num_email_addresses INTEGER,
-            num_spelling_errors INTEGER,
             num_urgent_keywords INTEGER
         )
     """)
@@ -50,10 +49,9 @@ def save_analysis(email_text: str, result: dict):
             num_links,
             num_unique_domains,
             num_email_addresses,
-            num_spelling_errors,
             num_urgent_keywords
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         email_text,
         result["prediction"],
@@ -65,7 +63,6 @@ def save_analysis(email_text: str, result: dict):
         features["num_links"],
         features["num_unique_domains"],
         features["num_email_addresses"],
-        features["num_spelling_errors"],
         features["num_urgent_keywords"]
     ))
 

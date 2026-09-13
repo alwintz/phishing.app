@@ -68,6 +68,5 @@ def extract_features(email_text: str):
         len(links),                  # num_links
         len(set(domains)),           # num_unique_domains
         len(email_addresses),        # num_email_addresses
-        0,                           # num_spelling_errors
         num_urgent_keywords          # num_urgent_keywords
     ]
